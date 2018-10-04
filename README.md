@@ -2,6 +2,8 @@
 
 Can be called from command line or imported into another script.
 
+Command line:
+
     usage: clips.py [-h] -u USERS [USERS ...] [-b BUFFER] [-n] [-v] url
 
     positional arguments:
@@ -17,3 +19,12 @@ Can be called from command line or imported into another script.
       -n, --nocache         If this flag is specified, usernames will not be
                             cached.
       -v, --verbose         Show debug info.
+
+Python script:
+
+    from clips import get_videos
+    
+    url = "https://www.twitch.tv/videos/<video_id>"
+    users = ["user1", "user2"]
+    
+    results = get_videos(url, users, buffer=0)
