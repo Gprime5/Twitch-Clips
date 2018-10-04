@@ -22,11 +22,9 @@ Command line:
 
 Python script:
 
-    ```python
     from clips import get_videos
     
     url = "https://www.twitch.tv/videos/<video_id>"
     users = ["user1", "user2"]
     
     results = get_videos(url, users, buffer=0)
-    ```
