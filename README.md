@@ -2,6 +2,8 @@
 
 Can be called from command line or imported into another script.
 
+Provide client_id in info.ini before use.
+
 Command line:
     
     usage: clips.py [-h] -u USERS [USERS ...] [-b BUFFER] [-n] [-v] url
