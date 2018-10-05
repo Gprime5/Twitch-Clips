@@ -6,7 +6,7 @@ Provide client_id in info.ini before use.
 
 Command line:
     
-    usage: clips.py [-h] -u USERS [USERS ...] [-b BUFFER] [-n] [-v] url
+    usage: clips.py [-h] url -u USERS [USERS ...] [-b BUFFER] [-n] [-v]
 
     positional arguments:
       url                   Clip or VOD url.
