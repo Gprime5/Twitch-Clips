@@ -1,5 +1,7 @@
 # Twitch-Clips
 
+A script that retrieves the time in a Twitch broadcaster's VOD that matches the time a Twitch clip was created or the url+timestamp of another Twitch VOD.
+
 Can be called from command line or imported into another script.
 
 Provide client_id in info.ini before use.
