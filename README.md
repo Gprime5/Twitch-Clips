@@ -23,6 +23,13 @@ Command line:
       -n, --nocache         If this flag is specified, usernames will not be
                             cached.
       -v, --verbose         Show debug info.
+      
+CLI Example:
+
+    D:\Twitch_clips>python clips.py https://clips.twitch.tv/ZanyVenomousWasabiWow -u singsing carn_ rime_
+    singsing https://www.twitch.tv/videos/316172110?t=28686s
+    carn_    https://www.twitch.tv/videos/316173396?t=28372s
+    rime_    Not found
 
 Python script:
 
