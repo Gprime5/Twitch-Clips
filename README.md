@@ -35,7 +35,11 @@ Python script:
 
     from clips import get_videos
     
-    url = "https://www.twitch.tv/videos/<video_id>?t=1h2m3s"
-    users = ["user1", "user2"]
+    url = "https://clips.twitch.tv/ZanyVenomousWasabiWow"
+    users = ["singsing", "carn_", "rime_"]
     
-    results = get_videos(url, users, buffer=0)
+    print(get_videos(url, users))
+    
+    # Output
+    
+    # [('singsing', 'https://www.twitch.tv/videos/316172110?t=28686s'), ('carn_', 'https://www.twitch.tv/videos/316173396?t=28372s'), ('rime_', 'Not found')]
