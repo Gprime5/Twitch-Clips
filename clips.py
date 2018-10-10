@@ -20,16 +20,10 @@ accounts = dict(u.split(",") for u in config["DEFAULT"]["accounts"].split("\n"))
 opts = {}
 
 def update_users(account_names):
-    """
-    
-    Updates the cache file of usernames and user ids
+    """Updates the cache file of usernames and user ids
     
     Parameters:
      account_names: username or list of usernames
-    
-    Returns:
-     None
-    
     """
     
     if isinstance(account_names, str):
@@ -54,16 +48,13 @@ def update_users(account_names):
             config.write(fp)
 
 def get_time(video_id):
-    """
-    
-    Uses the api to get the time the video was created.
+    """Uses the api to get the time the video was created.
     
     Parameters:
      video_id: if of the VOD.
      
     Returns:
      datetime: when the VOD was created.
-    
     """
     
     logging.info(f"Getting video time: {video_id}")
@@ -85,9 +76,7 @@ def parse_offset(time):
     )
 
 def search_videos(name, time, buffer):
-    """
-    
-    Searches the user's past broadcasts for a video that was recorded 
+    """Searches the user's past broadcasts for a video that was recorded 
     during a specific time.
     
     Parameters:
@@ -97,7 +86,6 @@ def search_videos(name, time, buffer):
      
     Returns:
      string: url of VOD with offset or "Not found".
-    
     """
     
     logging.info(f"Searching: name={name} time={time} buffer={buffer}")
@@ -130,9 +118,7 @@ def search_videos(name, time, buffer):
         parameters["after"] = response["pagination"]["cursor"]
 
 def get_videos(clip_url, account_names, buffer=0):
-    """
-    
-    Get a list of videos that were recorded at the time clip_url was created.
+    """Get a list of videos that were recorded at the time clip_url was created.
     
     Parameters:
      clip_url: full of clip or VOD url with offset
@@ -141,7 +127,6 @@ def get_videos(clip_url, account_names, buffer=0):
      
     Returns:
      list of (username, url) tuples: If a video does not exist, url is "Not found".
-    
     """
     
     if isinstance(account_names, str):
@@ -150,16 +135,13 @@ def get_videos(clip_url, account_names, buffer=0):
     update_users(account_names)
     
     if clip_url.startswith("https://clips.twitch.tv/"):
-        """
-        
-        The old v2 API is used to get the time and offset that the clip 
+        """The old v2 API is used to get the time and offset that the clip 
         was created.
         
         The new API (https://api.twitch.tv/helix/clips) does not provide 
         the offset (yet 04/10/18).
         
         The VOD offset time cannot be inferred from the created_at field.
-        
         """
         
         url = f"https://clips.twitch.tv/api/v2/clips/{clip_url[24:]}"
