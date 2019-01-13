@@ -26,15 +26,22 @@ def update_users(account_names):
     if new_accounts:
         logging.info("Downloading new account data.")
         url = "https://api.twitch.tv/helix/users"
-        response = session.get(url, params={"login": new_accounts}).json()
+        response = session.get(url, params={"login": new_accounts}, timeout=2).json()
+        
+        if response.get("error") == "Unauthorized":
+            raise ValueError("Invalid client_id.")
         
         for item in response["data"]:
             settings["accounts"][item["login"]] = item["id"]
+        invalid = set(account_names) - settings["accounts"].keys()
             
         if not args.nocache:
-            logging.info(f"Saving new users: {' '.join(new_accounts)}")
+            logging.info(f"Saving new users: {' '.join(new_accounts - invalid)}")
             with open("info.json", "w") as fp:
                 json.dump(settings, fp, indent=4, sort_keys=True)
+                
+        return invalid
+    return ()
     
 def get_time(video_id):
     """Uses the api to get the time the video was created.
@@ -97,8 +104,7 @@ def get_videos(clip_url, account_names, buffer=0):
         response = session.get(url, timeout=2).json()
         
         if not response.get("vod"):
-            logging.error("Invalid clip ID.")
-            return ()
+            return (None, None)
             
         if "vod" in response:
             time = get_time(response["vod"]["id"])
@@ -130,7 +136,7 @@ def search_videos(name, time, buffer):
     }
     
     while True:
-        response = session.get(url, params=parameters).json()
+        response = session.get(url, params=parameters, timeout=2).json()
 
         if response.get("data") is None:
             return "Not found"
@@ -171,19 +177,23 @@ def main(args):
         logging.error("Users parameter missing.")
         return
         
-    account_names = args.users.split(",")
+    account_names = set(args.users.split(","))
     
     try:
-        update_users(account_names)
+        invalid = update_users(account_names)
             
-        values = get_videos(args.url[0], account_names, args.buffer)
+        values = get_videos(args.url[0], account_names - invalid, args.buffer)
+        if values == (None, None):
+            raise ValueError("Invalid clip ID.")
         print()
         
         column_width = max(len(name) for name, result in values)
         for user, result in values:
             print(f"{user:<{column_width}} {result}")
-    except requests.exceptions.ConnectionError:
+    except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
         logging.error("Connection error.")
+    except ValueError as e:
+        logging.error(e.args[0])
         
 # Streamline Threads and Queues
 class thread_manager(threading.Thread):
@@ -317,22 +327,39 @@ class GUI(Tk):
         lbl = ttk.Label(self, width=70, justify="center", textvariable=self.top_var)
         lbl.grid(columnspan=2, **self.pad)
         
-        self.tv = tree(self, 0, 1, ("Name", "ID", "URL"), (100, 100, 200), columnspan=2, **self.pad)
-        self.tv.bind("<Button-3>", self.popup)
-        self.tv.tag_configure("on", background="aquamarine")
+        top_frame = Frame(self)
+        top_frame.grid(columnspan=2, sticky="nwes")
+        top_frame.columnconfigure(1, weight=1)
+        
+        lbl = ttk.Label(top_frame, text="Enter names:")
+        lbl.grid(sticky="w", **self.pad)
         
         self.user_var = StringVar()
-        entry = Entry(self, textvariable=self.user_var)
-        entry.grid(column=0, row=2, sticky="we", **self.pad)
+        entry = Entry(top_frame, textvariable=self.user_var)
+        entry.grid(column=1, row=0, sticky="we", **self.pad)
         entry.bind("<Return>", self.add)
         entry.focus()
         
+        self.tv = tree(self, 0, 2, ("Name", "ID", "URL"), (100, 100, 200), columnspan=2, **self.pad)
+        self.tv.bind("<Button-3>", self.popup)
+        self.tv.tag_configure("on", background="aquamarine")
+        
         self.search_btn = ttk.Button(self, text="Search", width=10, command=self.search)
-        self.search_btn.grid(column=1, row=2, **self.pad)
+        self.search_btn.grid(column=1, row=3, **self.pad)
+        
+        def delete():
+            user = self.tv.selection()[0]
+            del settings["accounts"][user]
+            self.tv.delete(user)
         
         self.menu = Menu(self, tearoff=0)
-        self.menu.add_command(label="Open Url", command=self.web_open)
-        self.menu.add_command(label="Copy Url", command=self.copy)
+        self.menu.add_command(label="  Open Url", command=self.web_open)
+        self.menu.add_command(label="  Copy Url", command=self.copy)
+        self.menu.add_command(label="Remove User", command=delete)
+        
+        self.log_var = StringVar()
+        lbl = ttk.Label(self, textvariable=self.log_var)
+        lbl.grid(column=0, row=3, sticky="we", **self.pad)
         
         self.event_thread = thread_manager(self.run).start()
         
@@ -361,29 +388,35 @@ class GUI(Tk):
         if user:
             self.tv.insert("", "end", user, text=user, tags="on")
             self.user_var.set("")
-            logging.info(f"Added new user: {user}.")
+            self.log_var.set(f"Added new user: {user}.")
         
     def search(self):
-        logging.info("Starting search.")
         self.event_thread.put("search")
         
     def run(self, command):
         if command == "search":
             self.search_btn["state"] = "disabled"
             try:
-                update_users(self.tv.get_children())
+                for invalid_user in update_users(self.tv.get_children()):
+                    self.tv.delete(invalid_user)
                 for name, user_id in settings["accounts"].items():
                     self.tv.item(name, values=(user_id,))
                     
                 selected = self.tv.tag_has("on")
                 if not selected:
-                    logging.info("No users selected.")
+                    self.log_var.set("No users selected.")
                     return
+                
+                self.log_var.set("Searching...")
                 for name, result in get_videos(self.current_url, selected):
+                    if result is None:
+                        raise ValueError("Invalid clip ID.")
                     values = self.tv.item(name, "values")
                     self.tv.item(name, values=(*values, result))
-            except requests.exceptions.ConnectionError:
-                logging.error("Connection error.")
+            except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
+                self.log_var.set("Connection error.")
+            except ValueError as e:
+                self.log_var.set(e.args[0])
             finally:
                 self.search_btn["state"] = "enabled"
         elif command is None:
@@ -419,7 +452,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     
     parser.add_argument("-url", nargs=1,
-        help="clip or VOD url.")
+        help="clip or VOD url. Requires quotes ('') if url contains an ampersand (&).")
     parser.add_argument("-u", "--users",
         help="a single username or multiple usernames separated by commas.")
     parser.add_argument("-b", "--buffer", type=int, default=0,
