@@ -6,6 +6,8 @@ This script retrieves the time in a Twitch broadcaster's VOD that matches the ti
 ### Requires  
 requests
 
+---
+
 Provide client_id in info.json before use.
 
 Command line:
@@ -30,6 +32,6 @@ CLI Example:
     D:\Twitch_clips>python -url clips.py https://clips.twitch.tv/ZanyVenomousWasabiWow -u singsing,carn_,rime_
     singsing https://www.twitch.tv/videos/316172110?t=7h58m6s
     carn_    https://www.twitch.tv/videos/316173396?t=7h52m52s
-    rime_    Not found
+    rime_    Not found.
 
 If URL and USERS and BUFFER is not provided. this will open the Tkinter GUI.
