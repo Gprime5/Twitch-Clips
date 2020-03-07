@@ -32,6 +32,7 @@ clip_re_1 = re.compile(r"https://clips.twitch.tv/(?P<clip_id>\w+).*")
 clip_re_2 = re.compile(r"https://www.twitch.tv/\w+/clip/(?P<clip_id>\w+).*")
 timestamp_re = re.compile(r"((?P<hours>\d+)h)?((?P<minutes>\d+)m)?((?P<seconds>\d+)s)?")
 vod_re = re.compile(r"https://www.twitch.tv/videos/(?P<vod_id>\d+)(\?t=)?((?P<hours>\d+)h)?((?P<minutes>\d+)m)?((?P<seconds>\d+)s)?")
+ctime_re = re.compile(r"(?P<years>\d{4})-(?P<months>\d\d)-(?P<days>\d\d) (?P<hours>\d\d):(?P<minutes>\d\d):(?P<seconds>\d\d) ?(?P<timezone>\w\w\w)?")
 
 def update_accounts(account_names):
     new_accounts = set(account_names) - info["accounts"].keys()
@@ -53,7 +54,7 @@ def update_accounts(account_names):
     return set(account_names) - info["accounts"].keys()
     
 def extract_timestamp(url):
-    data = (vod_re.search(url) or clip_re_1.search(url) or clip_re_2.search(url)).groupdict()
+    data = (vod_re.search(url) or clip_re_1.search(url) or clip_re_2.search(url) or ctime_re.search(url) or re.search(r".*")).groupdict()
     
     if data.get("vod_id"):
         url = "https://api.twitch.tv/helix/videos"
@@ -76,6 +77,16 @@ def extract_timestamp(url):
         video_id = response["video"]["id"]
         
         return extract_timestamp(f"https://www.twitch.tv/videos/{video_id}") + timedelta(seconds=offset)
+        
+    if data.get("years"):
+        return datetime(
+            int(data["years"]),
+            int(data["months"]),
+            int(data["days"]),
+            int(data["hours"]),
+            int(data["minutes"]),
+            int(data["seconds"])
+        )
         
 def search_video(time, name, buffer):
     url = "https://api.twitch.tv/helix/videos"
@@ -144,4 +155,3 @@ if __name__ == "__main__":
     
     for name, value in main(args.url, args.users.split(","), args.buffer):
         print(name, value)
-        
